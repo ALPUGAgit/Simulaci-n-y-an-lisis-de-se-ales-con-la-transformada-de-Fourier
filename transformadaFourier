@@ -1,0 +1,307 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Configuración general
+Fs = float(input("Frecuencia de muestreo (Hz): "))
+duracion = float(input("Duración de la señal (s): "))
+
+t = np.arange(0, duracion, 1/Fs)
+N = len(t)
+f = np.fft.fftshift(np.fft.fftfreq(N, 1/Fs))
+
+
+# Función para calcular y graficar la FFT
+def analizar(señal, titulo):
+    X = np.fft.fftshift(np.fft.fft(señal))
+    magnitud = np.abs(X) / N
+    fase = np.angle(X)
+
+    plt.figure(figsize=(10, 7))
+
+    plt.subplot(3, 1, 1)
+    plt.plot(t, señal)
+    plt.title(titulo + " - Dominio del tiempo")
+    plt.xlabel("Tiempo (s)")
+    plt.ylabel("Amplitud")
+    plt.grid()
+
+    plt.subplot(3, 1, 2)
+    plt.plot(f, magnitud)
+    plt.title("Magnitud del espectro")
+    plt.xlabel("Frecuencia (Hz)")
+    plt.ylabel("|X(f)|")
+    plt.grid()
+
+    plt.subplot(3, 1, 3)
+    plt.plot(f, fase)
+    plt.title("Fase del espectro")
+    plt.xlabel("Frecuencia (Hz)")
+    plt.ylabel("Fase (rad)")
+    plt.grid()
+
+    plt.tight_layout()
+    plt.show()
+
+
+# Menú principal
+while True:
+
+    print("\n========== MENÚ ==========")
+    print("1. Pulso rectangular")
+    print("2. Función escalón")
+    print("3. Señal senoidal")
+    print("4. Linealidad")
+    print("5. Desplazamiento temporal")
+    print("6. Escalamiento en frecuencia")
+    print("7. Análisis completo")
+    print("8. Salir")
+
+    opcion = input("Selecciona una opción: ")
+
+
+    # Pulso rectangular
+    # Genera un pulso rectangular con la amplitud y duración indicadas.
+
+    if opcion == "1":
+
+        A = float(input("Amplitud del pulso: "))
+        ancho = float(input("Duración del pulso (s): "))
+
+        pulso = A * (
+            (t >= (duracion-ancho)/2) &
+            (t <= (duracion+ancho)/2)
+        )
+
+        analizar(pulso, "Pulso rectangular")
+
+
+    # Función escalón
+    # Genera una función escalón a partir del instante seleccionado.
+
+    elif opcion == "2":
+
+        A = float(input("Amplitud del escalón: "))
+        inicio = float(input("Inicio del escalón (s): "))
+
+        escalon = A * (t >= inicio)
+
+        analizar(escalon, "Función escalón")
+
+
+    # Señal senoidal
+    # Genera una señal senoidal con amplitud, frecuencia y fase definidas.
+
+    elif opcion == "3":
+
+        A = float(input("Amplitud: "))
+        frecuencia = float(input("Frecuencia (Hz): "))
+        fase = float(input("Fase inicial (grados): "))
+
+        senoidal = A * np.sin(
+            2*np.pi*frecuencia*t + np.deg2rad(fase)
+        )
+
+        analizar(senoidal, "Señal senoidal")
+
+
+    # Propiedad de linealidad
+    # Comprueba la propiedad de linealidad comparando dos resultados de la FFT.
+
+    elif opcion == "4":
+
+        f1 = float(input("Frecuencia de x1 (Hz): "))
+        f2 = float(input("Frecuencia de x2 (Hz): "))
+        a = float(input("Factor a: "))
+        b = float(input("Factor b: "))
+
+        x1 = np.sin(2*np.pi*f1*t)
+        x2 = np.sin(2*np.pi*f2*t)
+
+        X1 = np.fft.fft(x1)
+        X2 = np.fft.fft(x2)
+
+        combinada = a*x1 + b*x2
+        X_combinada = np.fft.fft(combinada)
+
+        X_teorica = a*X1 + b*X2
+
+        error = np.max(
+            np.abs(X_combinada-X_teorica)
+        )
+
+        print("\nPropiedad de linealidad")
+        print("Error máximo:", error)
+
+        if error < 1e-8:
+            print("La propiedad se cumple correctamente.")
+        else:
+            print("Existe una diferencia numérica.")
+
+        analizar(combinada, "Combinación lineal")
+
+
+    # Desplazamiento temporal
+    # Compara una señal original con otra desplazada en el tiempo.
+
+    elif opcion == "5":
+
+        frecuencia = float(input("Frecuencia (Hz): "))
+        desplazamiento = float(
+            input("Desplazamiento temporal (s): ")
+        )
+
+        original = np.sin(
+            2*np.pi*frecuencia*t
+        )
+
+        desplazada = np.sin(
+            2*np.pi*frecuencia*(t-desplazamiento)
+        )
+
+        X1 = np.fft.fftshift(
+            np.fft.fft(original)
+        )
+
+        X2 = np.fft.fftshift(
+            np.fft.fft(desplazada)
+        )
+
+        plt.figure(figsize=(10, 6))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(t, original, label="Original")
+        plt.plot(t, desplazada, "--", label="Desplazada")
+        plt.title("Desplazamiento temporal")
+        plt.xlabel("Tiempo (s)")
+        plt.ylabel("Amplitud")
+        plt.legend()
+        plt.grid()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(f, np.abs(X1)/N, label="Original")
+        plt.plot(f, np.abs(X2)/N, "--", label="Desplazada")
+        plt.title("Magnitud del espectro")
+        plt.xlabel("Frecuencia (Hz)")
+        plt.ylabel("Magnitud")
+        plt.legend()
+        plt.grid()
+
+        plt.tight_layout()
+        plt.show()
+
+        print("\nEl desplazamiento temporal modifica principalmente la fase.")
+        print("La magnitud del espectro permanece prácticamente igual.")
+
+
+    # Escalamiento en frecuencia
+    # Compara una señal con otra cuya frecuencia fue escalada.
+
+    elif opcion == "6":
+
+        frecuencia = float(
+            input("Frecuencia original (Hz): ")
+        )
+
+        factor = float(
+            input("Factor de escalamiento: ")
+        )
+
+        nueva_frecuencia = frecuencia * factor
+
+        x1 = np.sin(
+            2*np.pi*frecuencia*t
+        )
+
+        x2 = np.sin(
+            2*np.pi*nueva_frecuencia*t
+        )
+
+        X1 = np.fft.fftshift(
+            np.fft.fft(x1)
+        )
+
+        X2 = np.fft.fftshift(
+            np.fft.fft(x2)
+        )
+
+        plt.figure(figsize=(10, 6))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(t, x1, label=f"{frecuencia} Hz")
+        plt.plot(t, x2, label=f"{nueva_frecuencia} Hz")
+        plt.title("Escalamiento en frecuencia")
+        plt.xlabel("Tiempo (s)")
+        plt.ylabel("Amplitud")
+        plt.legend()
+        plt.grid()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(f, np.abs(X1)/N, label=f"{frecuencia} Hz")
+        plt.plot(f, np.abs(X2)/N, label=f"{nueva_frecuencia} Hz")
+        plt.title("Espectro de frecuencia")
+        plt.xlabel("Frecuencia (Hz)")
+        plt.ylabel("Magnitud")
+        plt.legend()
+        plt.grid()
+
+        plt.tight_layout()
+        plt.show()
+
+        print(
+            f"\nLa frecuencia cambió de {frecuencia} Hz "
+            f"a {nueva_frecuencia} Hz."
+        )
+
+
+    # Análisis completo
+    # Calcula la FFT y obtiene la magnitud y fase del espectro.
+    # Grafica la señal en el dominio del tiempo y sus características en frecuencia.
+    
+    elif opcion == "7":
+
+        print("\n========== ANÁLISIS COMPLETO ==========")
+
+        print("\nPULSO RECTANGULAR")
+        A = float(input("Amplitud: "))
+        ancho = float(input("Duración del pulso (s): "))
+
+        pulso = A * (
+            (t >= (duracion-ancho)/2) &
+            (t <= (duracion+ancho)/2)
+        )
+
+        analizar(pulso, "Pulso rectangular")
+
+        print("\nFUNCIÓN ESCALÓN")
+        A = float(input("Amplitud: "))
+        inicio = float(input("Inicio del escalón (s): "))
+
+        escalon = A * (t >= inicio)
+
+        analizar(escalon, "Función escalón")
+
+        print("\nSEÑAL SENOIDAL")
+        A = float(input("Amplitud: "))
+        frecuencia = float(input("Frecuencia (Hz): "))
+        fase = float(input("Fase inicial (grados): "))
+
+        senoidal = A * np.sin(
+            2*np.pi*frecuencia*t + np.deg2rad(fase)
+        )
+
+        analizar(senoidal, "Señal senoidal")
+
+        print("\nANÁLISIS COMPLETO TERMINADO.")
+
+
+    # Salir
+    elif opcion == "8":
+
+        print("\nPrograma finalizado.")
+        break
+
+
+    # Opción inválida
+    else:
+
+        print("\nOpción no válida.")
